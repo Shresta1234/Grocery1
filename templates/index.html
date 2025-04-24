@@ -1,0 +1,837 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <!-- Notification Banner -->
+    <div id="notificationBanner" class="notification-banner" style="display: none;">
+        <div class="container">
+            <div class="alert alert-warning alert-dismissible fade show mb-0" role="alert">
+                <i class="bi bi-bell"></i> <span id="notificationMessage"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="container py-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="mb-0">My Groceries</h1>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                        <i class="bi bi-plus-lg"></i> Add Item
+                    </button>
+                    <button class="btn btn-outline-primary" id="toggleView">
+                        <i class="bi bi-grid"></i> Toggle View
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Overview -->
+    <div class="container mb-4">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Safe Items</h5>
+                        <p class="card-text display-4">{{ safe_items|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body">
+                        <h5 class="card-title">Expiring Soon</h5>
+                        <p class="card-text display-4">{{ expiring_soon_items|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Expired Items</h5>
+                        <p class="card-text display-4">{{ expired_items|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="container mb-4">
+        <div class="row">
+            <!-- Expiry Status Chart -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Expiry Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="position: relative; height: 200px;">
+                            <canvas id="expiryChart"></canvas>
+                        </div>
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="status-label safe">
+                                    <i class="bi bi-circle-fill text-success"></i> Safe
+                                </span>
+                                <span class="status-count safe" id="safeCount"></span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="status-label expiring">
+                                    <i class="bi bi-circle-fill text-warning"></i> Expiring Soon
+                                </span>
+                                <span class="status-count expiring" id="expiringCount"></span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="status-label expired">
+                                    <i class="bi bi-circle-fill text-danger"></i> Expired
+                                </span>
+                                <span class="status-count expired" id="expiredCount"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Category Distribution Chart -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Category Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="position: relative; height: 200px;">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items Container -->
+    <div class="container">
+        <div id="itemsContainer" class="table-view">
+            <!-- Table View -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in serialized_items %}
+                        <tr class="table-{{ item.safety_status }}">
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.category }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>
+                                {{ item.expiry_date }}
+                                <span class="expiry-warning {{ item.safety_status }}">
+                                    {{ get_expiry_message(item.days_until_expiry) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ item.safety_status }}">
+                                    {{ item.safety_status|replace('_', ' ')|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary edit-item-btn" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editItemModal"
+                                            data-item='{{ item|tojson }}'>
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-item-btn"
+                                            data-item-id="{{ item.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-success mark-used-btn"
+                                            data-item-id="{{ item.id }}">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Card View -->
+            <div class="row card-view" style="display: none;">
+                {% for item in serialized_items %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 item-card-{{ item.safety_status }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ item.name }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ item.category }}</h6>
+                            <p class="card-text">
+                                <strong>Quantity:</strong> {{ item.quantity }}<br>
+                                <strong>Expiry Date:</strong> {{ item.expiry_date }}<br>
+                                <span class="expiry-warning {{ item.safety_status }}">
+                                    {{ get_expiry_message(item.days_until_expiry) }}
+                                </span>
+                            </p>
+                            <div class="btn-group w-100">
+                                <button class="btn btn-sm btn-outline-primary edit-item-btn" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editItemModal"
+                                        data-item='{{ item|tojson }}'>
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-item-btn"
+                                        data-item-id="{{ item.id }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success mark-used-btn"
+                                        data-item-id="{{ item.id }}">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm" method="POST" action="{{ url_for('add_item') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="Fruits">Fruits</option>
+                            <option value="Vegetables">Vegetables</option>
+                            <option value="Dairy">Dairy</option>
+                            <option value="Meat">Meat</option>
+                            <option value="Bakery">Bakery</option>
+                            <option value="Canned Goods">Canned Goods</option>
+                            <option value="Frozen">Frozen</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="text" class="form-control" id="quantity" name="quantity" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expiry_date" class="form-label">Expiry Date</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div class="modal fade" id="editItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editItemForm" method="POST">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_category" class="form-label">Category</label>
+                        <select class="form-select" id="edit_category" name="category" required>
+                            <option value="Fruits">Fruits</option>
+                            <option value="Vegetables">Vegetables</option>
+                            <option value="Dairy">Dairy</option>
+                            <option value="Meat">Meat</option>
+                            <option value="Bakery">Bakery</option>
+                            <option value="Canned Goods">Canned Goods</option>
+                            <option value="Frozen">Frozen</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_quantity" class="form-label">Quantity</label>
+                        <input type="text" class="form-control" id="edit_quantity" name="quantity" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_expiry_date" class="form-label">Expiry Date</label>
+                        <input type="date" class="form-control" id="edit_expiry_date" name="expiry_date" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Item</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+/* Status Colors - Light Mode */
+.item-card-safe {
+    border-left: 4px solid #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.item-card-expiring_soon {
+    border-left: 4px solid #ffc107;
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.item-card-expired {
+    border-left: 4px solid #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.table-safe {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.table-expiring_soon {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.table-expired {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.badge.bg-safe {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+.badge.bg-expiring_soon {
+    background-color: #ffc107 !important;
+    color: black !important;
+}
+
+.badge.bg-expired {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+/* Dark Mode Styles */
+body.dark-mode .item-card-safe {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-color: #28a745;
+}
+
+body.dark-mode .item-card-expiring_soon {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-color: #ffc107;
+}
+
+body.dark-mode .item-card-expired {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-color: #dc3545;
+}
+
+body.dark-mode .table-safe {
+    background-color: rgba(40, 167, 69, 0.2) !important;
+}
+
+body.dark-mode .table-expiring_soon {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+}
+
+body.dark-mode .table-expired {
+    background-color: rgba(220, 53, 69, 0.2) !important;
+}
+
+/* View Toggle Styles */
+.table-view .card-view {
+    display: none;
+}
+
+.card-view .table-responsive {
+    display: none;
+}
+
+/* Expiry Warning */
+.expiry-warning {
+    display: block;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.expiry-warning.expired {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+.expiry-warning.expiring_soon {
+    color: #ffc107;
+    font-weight: 500;
+}
+
+.expiry-warning.safe {
+    color: #28a745;
+    font-weight: 500;
+}
+
+/* Card Hover Effects */
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Status Cards */
+.card.bg-success, .card.bg-warning, .card.bg-danger {
+    transition: transform 0.2s;
+}
+
+.card.bg-success:hover, .card.bg-warning:hover, .card.bg-danger:hover {
+    transform: translateY(-5px);
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.status-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.status-label i {
+    font-size: 0.8rem;
+}
+
+.status-count {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+/* Status colors */
+.status-label.safe i {
+    color: #28a745;
+}
+
+.status-label.expiring i {
+    color: #ffc107;
+}
+
+.status-label.expired i {
+    color: #dc3545;
+}
+
+.status-count.safe {
+    color: #28a745;
+}
+
+.status-count.expiring {
+    color: #ffc107;
+}
+
+.status-count.expired {
+    color: #dc3545;
+}
+
+/* Dark mode adjustments */
+body.dark-mode .status-label {
+    color: #f8f9fa;
+}
+
+body.dark-mode .status-count.safe {
+    color: #2ecc71;
+}
+
+body.dark-mode .status-count.expiring {
+    color: #f1c40f;
+}
+
+body.dark-mode .status-count.expired {
+    color: #e74c3c;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize Expiry Chart
+const expiryCtx = document.getElementById('expiryChart').getContext('2d');
+const expiryChart = new Chart(expiryCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ expiry_stats.labels|tojson }},
+        datasets: [{
+            data: {{ expiry_stats.data|tojson }},
+            backgroundColor: {{ expiry_stats.colors|tojson }},
+            borderColor: 'rgba(255, 255, 255, 0.8)',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.raw || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `${label}: ${value} (${percentage}%)`;
+                    }
+                }
+            }
+        },
+        cutout: '60%'
+    }
+});
+
+// Update counters
+document.getElementById('safeCount').textContent = {{ expiry_stats.data[0] }};
+document.getElementById('expiringCount').textContent = {{ expiry_stats.data[1] }};
+document.getElementById('expiredCount').textContent = {{ expiry_stats.data[2] }};
+
+// Initialize Category Chart with new color scheme
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(categoryCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ category_stats.labels|tojson }},
+        datasets: [{
+            label: 'Items per Category',
+            data: {{ category_stats.data|tojson }},
+            backgroundColor: [
+                '#4e79a7', // Blue
+                '#f28e2c', // Orange
+                '#e15759', // Red
+                '#76b7b2', // Teal
+                '#59a14f', // Green
+                '#edc949', // Yellow
+                '#af7aa1', // Purple
+                '#ff9da7', // Pink
+                '#9c755f', // Brown
+                '#bab0ab'  // Gray
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Toggle View Functionality
+document.getElementById('toggleView').addEventListener('click', function() {
+    const tableView = document.querySelector('.table-view .table-responsive');
+    const cardView = document.querySelector('.table-view .card-view');
+    
+    if (tableView.style.display === 'none') {
+        tableView.style.display = 'block';
+        cardView.style.display = 'none';
+        this.innerHTML = '<i class="bi bi-grid"></i> Card View';
+    } else {
+        tableView.style.display = 'none';
+        cardView.style.display = 'block';
+        this.innerHTML = '<i class="bi bi-table"></i> Table View';
+    }
+    
+    // Store view preference
+    localStorage.setItem('preferredView', tableView.style.display === 'none' ? 'card' : 'table');
+});
+
+// Set initial view based on preference
+document.addEventListener('DOMContentLoaded', function() {
+    const preferredView = localStorage.getItem('preferredView');
+    const tableView = document.querySelector('.table-view .table-responsive');
+    const cardView = document.querySelector('.table-view .card-view');
+    const toggleButton = document.getElementById('toggleView');
+    
+    if (preferredView === 'card') {
+        tableView.style.display = 'none';
+        cardView.style.display = 'block';
+        toggleButton.innerHTML = '<i class="bi bi-table"></i> Table View';
+    }
+});
+
+// Print List Functionality
+document.getElementById('printList').addEventListener('click', function() {
+    const printWindow = window.open('', '_blank');
+    const items = {{ serialized_items|tojson }};
+    
+    // Create print-friendly content
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Grocery List</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                    background-color: #fff;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid #eee;
+                }
+                .header h1 {
+                    color: #333;
+                    margin-bottom: 10px;
+                }
+                .header p {
+                    color: #666;
+                }
+                .summary {
+                    display: flex;
+                    justify-content: space-around;
+                    margin-bottom: 30px;
+                    padding: 20px;
+                    background-color: #f8f9fa;
+                    border-radius: 10px;
+                }
+                .summary-item {
+                    text-align: center;
+                }
+                .summary-item h3 {
+                    margin: 0;
+                    color: #333;
+                }
+                .summary-item p {
+                    margin: 5px 0 0;
+                    color: #666;
+                }
+                .items-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }
+                .items-table th {
+                    background-color: #f8f9fa;
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 2px solid #ddd;
+                }
+                .items-table td {
+                    padding: 12px;
+                    border-bottom: 1px solid #eee;
+                }
+                .status-badge {
+                    padding: 5px 10px;
+                    border-radius: 15px;
+                    font-size: 0.9em;
+                    color: white;
+                }
+                .safe { background-color: #28a745; }
+                .expiring_soon { background-color: #ffc107; color: black; }
+                .expired { background-color: #dc3545; }
+                .footer {
+                    margin-top: 40px;
+                    text-align: center;
+                    color: #666;
+                    font-size: 0.9em;
+                }
+                @media print {
+                    .no-print { display: none; }
+                    body { margin: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Grocery List</h1>
+                <p>Generated on: ${new Date().toLocaleString()}</p>
+            </div>
+            
+            <div class="summary">
+                <div class="summary-item">
+                    <h3>${items.filter(i => i.safety_status === 'safe').length}</h3>
+                    <p>Safe Items</p>
+                </div>
+                <div class="summary-item">
+                    <h3>${items.filter(i => i.safety_status === 'expiring_soon').length}</h3>
+                    <p>Expiring Soon</p>
+                </div>
+                <div class="summary-item">
+                    <h3>${items.filter(i => i.safety_status === 'expired').length}</h3>
+                    <p>Expired Items</p>
+                </div>
+            </div>
+            
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Quantity</th>
+                        <th>Expiry Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.category}</td>
+                            <td>${item.quantity}</td>
+                            <td>${item.expiry_date}</td>
+                            <td>
+                                <span class="status-badge ${item.safety_status}">
+                                    ${item.safety_status.replace('_', ' ').toUpperCase()}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            
+            <div class="footer">
+                <p>Generated by Grocery Tracker</p>
+            </div>
+            
+            <div class="no-print" style="text-align: center; margin-top: 20px;">
+                <button onclick="window.print()" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    Print List
+                </button>
+                <button onclick="window.close()" style="padding: 10px 20px; background-color: #6c757d; color: white; border: none; border-radius: 5px; margin-left: 10px; cursor: pointer;">
+                    Close
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+});
+
+// Share List Functionality
+document.getElementById('shareList').addEventListener('click', async function() {
+    try {
+        const response = await fetch('/share_list/{{ session.user_id }}');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Create modal for sharing
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Share Your List</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="${data.qr_code}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" value="${data.share_url}" readonly>
+                                <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('${data.share_url}')">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                            <p class="text-muted">Scan the QR code or copy the link to share your list</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            const shareModal = new bootstrap.Modal(modal);
+            shareModal.show();
+            
+            // Clean up modal when closed
+            modal.addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(modal);
+            });
+        } else {
+            alert('Error sharing list. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error sharing list:', error);
+        alert('Error sharing list. Please try again.');
+    }
+});
+
+// Delete item functionality
+document.querySelectorAll('.delete-item-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this item?')) {
+            const itemId = this.dataset.itemId;
+            fetch(`/delete_item/${itemId}`, {
+                method: 'GET'
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                }
+            });
+        }
+    });
+});
+
+// Mark item as used
+document.querySelectorAll('.mark-used-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const itemId = this.dataset.itemId;
+        fetch(`/mark_used/${itemId}`, {
+            method: 'GET'
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

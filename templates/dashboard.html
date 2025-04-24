@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+<body>
+  <h2>Your Groceries</h2>
+  <form method="post">
+    Item Name: <input type="text" name="name"><br>
+    Expiry Date: <input type="date" name="expiry_date"><br>
+    <input type="submit" value="Add Item">
+  </form>
+
+  <ul>
+    {% for item in items %}
+      <li>{{ item.name }} - Expires on {{ item.expiry_date }}</li>
+    {% endfor %}
+  </ul>
+
+  <a href="/logout">Logout</a>
+</body>
+</html>

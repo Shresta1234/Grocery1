@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Settings</h4>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings') }}">
+                        <!-- Notification Settings -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Notification Settings</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Notify me before items expire</label>
+                                <select class="form-select" name="notification_days">
+                                    <option value="1" {% if user.notification_days == 1 %}selected{% endif %}>1 day before</option>
+                                    <option value="3" {% if user.notification_days == 3 %}selected{% endif %}>3 days before</option>
+                                    <option value="5" {% if user.notification_days == 5 %}selected{% endif %}>5 days before</option>
+                                    <option value="7" {% if user.notification_days == 7 %}selected{% endif %}>1 week before</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="browserNotifications" 
+                                           name="browser_notifications" checked>
+                                    <label class="form-check-label" for="browserNotifications">
+                                        Enable Browser Notifications
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Settings -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Account Settings</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                            </div>
+                        </div>
+
+                        <!-- Change Password -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Change Password</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Current Password</label>
+                                <input type="password" class="form-control" name="current_password">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Password</label>
+                                <input type="password" class="form-control" name="new_password">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" name="confirm_password">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+}
+
+.form-check-input:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background-color: #212529;
+    color: #f8f9fa;
+}
+
+body.dark-mode .card {
+    background-color: #2c3034;
+    border-color: #373b3e;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: #343a40;
+    border-color: #495057;
+    color: #f8f9fa;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: #3d444a;
+    border-color: #007bff;
+    color: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Request notification permission when enabling browser notifications
+document.getElementById('browserNotifications').addEventListener('change', function() {
+    if (this.checked) {
+        Notification.requestPermission();
+    }
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const newPassword = document.querySelector('input[name="new_password"]').value;
+    const confirmPassword = document.querySelector('input[name="confirm_password"]').value;
+    
+    if (newPassword && newPassword !== confirmPassword) {
+        e.preventDefault();
+        alert('New passwords do not match!');
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

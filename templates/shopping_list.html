@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Shopping List</h2>
+    
+    <div class="d-flex justify-content-between mb-3">
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print List
+        </button>
+        <button class="btn btn-success" onclick="shareList()">
+            <i class="bi bi-share"></i> Share List
+        </button>
+    </div>
+
+    <div class="list-group">
+        {% for item in items %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="item{{ item.id }}">
+                    <label class="form-check-label" for="item{{ item.id }}">
+                        {{ item.name }}
+                    </label>
+                </div>
+                <span class="badge bg-primary rounded-pill">{{ item.category }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row min-vh-100 align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Smart Grocery Management</h1>
+                <p class="lead mb-4">Track, manage, and get notified about your food items intelligently.</p>
+                {% if user %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-success btn-lg">Go to Dashboard</a>
+                {% else %}
+                <div class="d-flex gap-3">
+                    <a href="{{ url_for('register') }}" class="btn btn-success btn-lg">Get Started</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-success btn-lg">Login</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="features-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Why Choose Our Grocery Tracker?</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="icon-wrapper bg-primary text-white">
+                        <i class="bi bi-bell"></i>
+                    </div>
+                    <h3>Smart Notifications</h3>
+                    <p>Get timely alerts before your items expire. Choose between email and browser notifications.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="icon-wrapper bg-success text-white">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h3>Track Everything</h3>
+                    <p>Monitor expiry dates, quantities, and categories. View statistics and trends.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="icon-wrapper bg-warning text-dark">
+                        <i class="bi bi-share"></i>
+                    </div>
+                    <h3>Easy Sharing</h3>
+                    <p>Share your grocery lists with family members through beautiful, customized images.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+.hero-section {
+    position: relative;
+    background: url('/static/images/grocery-bg.jpg') no-repeat center center;
+    background-size: cover;
+    min-height: 100vh;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.feature-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+}
+
+.icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.icon-wrapper i {
+    font-size: 1.5rem;
+}
+
+body.dark-mode .feature-card {
+    background: #2c3034;
+    color: #f8f9fa;
+}
+</style>
+{% endblock %}
+{% endblock %} 
